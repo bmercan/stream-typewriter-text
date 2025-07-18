@@ -1,7 +1,6 @@
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 /// Animated Text that displays a [Text] element as if it is being typed one
 /// character at a time. Similar to [TypeAnimatedText], but shows a cursor.
 ///
@@ -9,29 +8,23 @@ import 'package:flutter/services.dart';
 class TypewriterAnimatedText extends AnimatedText {
   // The text length is padded to cause extra cursor blinking after typing.
   static const extraLengthForBlinks = 8;
-
   /// The [Duration] of the delay between the apparition of each characters
   ///
   /// By default it is set to 30 milliseconds.
   final Duration speed;
-
   /// The [Curve] of the rate of change of animation over time.
   ///
   /// By default it is set to Curves.linear.
   final Curve curve;
-
   /// Cursor text. Defaults to underscore.
   final String cursor;
-
   /// @author: klever - BLOKPARTi
   final int? maxLines;
   final TextOverflow overflow;
   final int lengthAlreadyShown;
   String _visibleString = '';
   final bool isHapticFeedbackEnabled;
-
   String get visibleString => _visibleString;
-
   TypewriterAnimatedText(
       String text, {
         super.textAlign,
@@ -47,31 +40,34 @@ class TypewriterAnimatedText extends AnimatedText {
     text: text,
     duration: speed * (text.characters.length + extraLengthForBlinks),
   );
-
   late Animation<double> _typewriterText;
-
   @override
   Duration get remaining =>
       speed *
           (textCharacters.length + extraLengthForBlinks - _typewriterText.value);
-
   var prevValue = 0.0;
-
   @override
   void initAnimation(AnimationController controller) {
     _typewriterText = CurveTween(
       curve: curve,
     ).animate(controller);
-
     _typewriterText.addListener(() {
       final currentValue = _typewriterText.value;
       if (currentValue - prevValue >= 0.035) {
         prevValue = currentValue;
-        HapticFeedback.mediumImpact();
+        // Toplam karakter sayısını hesapla
+        final totalChars = textCharacters.length;
+        // Şu anki karakter pozisyonunu hesapla (yaklaşık olarak)
+        final currentCharPos = (currentValue * totalChars).round();
+        // Sadece ilk 50 veya son 50 karakterde haptik geri bildirim ver
+        if (currentCharPos < 45 || currentCharPos > totalChars - 35) {
+          if (isHapticFeedbackEnabled) {
+            HapticFeedback.lightImpact();
+          }
+        }
       }
     });
   }
-
   @override
   Widget completeText(BuildContext context) => RichText(
     text: TextSpan(
@@ -88,7 +84,6 @@ class TypewriterAnimatedText extends AnimatedText {
     overflow: overflow,
     textAlign: textAlign,
   );
-
   /// Widget showing partial text
   @override
   Widget animatedBuilder(BuildContext context, Widget? child) {
@@ -98,7 +93,6 @@ class TypewriterAnimatedText extends AnimatedText {
     final typewriterValue = (_typewriterText.value.clamp(0, 1) *
         (textCharacters.length + extraLengthForBlinks))
         .round();
-
     var showCursor = true;
     var visibleString = text;
     if (typewriterValue == 0) {
@@ -112,7 +106,6 @@ class TypewriterAnimatedText extends AnimatedText {
           textCharacters.take(typewriterValue + lengthAlreadyShown).toString();
       _visibleString = visibleString;
     }
-
     return RichText(
       text: TextSpan(
         children: [
