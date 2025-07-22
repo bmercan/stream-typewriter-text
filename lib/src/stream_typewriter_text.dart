@@ -16,6 +16,7 @@ class StreamTypewriterAnimatedText extends StatefulWidget {
   final bool repeatForever;
   final int totalRepeatCount;
   final bool isHapticFeedbackEnabled;
+  final int hapticInterval;
   final VoidCallback? onFinished;
 
   const StreamTypewriterAnimatedText({
@@ -33,6 +34,7 @@ class StreamTypewriterAnimatedText extends StatefulWidget {
     this.totalRepeatCount = 3,
     this.repeatForever = false,
     this.isHapticFeedbackEnabled = false,
+    this.hapticInterval = 8,
     this.onFinished,
   });
 
@@ -126,6 +128,7 @@ class StreamTypewriterAnimatedTextState
       curve: widget.curve,
       speed: widget.speed,
       isHapticFeedbackEnabled: widget.isHapticFeedbackEnabled,
+      hapticInterval: widget.hapticInterval,
     );
     final valueKey = ValueKey(text.hashCode + widget.style.hashCode);
     if (_child != null && _child!.key == valueKey) {
