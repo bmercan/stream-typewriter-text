@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// Base class for Animated Text widgets.
 class AnimatedTextKit extends StatefulWidget {
@@ -115,17 +114,17 @@ class AnimatedTextKitState extends State<AnimatedTextKit>
     final child = _isCurrentlyPausing || !_controller.isAnimating
         ? completeText
         : AnimatedBuilder(
-      animation: _controller,
-      builder: _currentAnimatedText.animatedBuilder,
-      child: completeText,
-    );
+            animation: _controller,
+            builder: _currentAnimatedText.animatedBuilder,
+            child: completeText,
+          );
 
     return canTap
         ? GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _onTap,
-      child: child,
-    )
+            behavior: HitTestBehavior.opaque,
+            onTap: _onTap,
+            child: child,
+          )
         : child;
   }
 

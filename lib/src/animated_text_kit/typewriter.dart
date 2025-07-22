@@ -1,6 +1,7 @@
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 /// Animated Text that displays a [Text] element as if it is being typed one
 /// character at a time. Similar to [TypeAnimatedText], but shows a cursor.
 ///
@@ -8,82 +9,103 @@ import 'package:flutter/services.dart';
 class TypewriterAnimatedText extends AnimatedText {
   // The text length is padded to cause extra cursor blinking after typing.
   static const extraLengthForBlinks = 8;
+
   /// The [Duration] of the delay between the apparition of each characters
   ///
   /// By default it is set to 30 milliseconds.
   final Duration speed;
+
   /// The [Curve] of the rate of change of animation over time.
   ///
   /// By default it is set to Curves.linear.
   final Curve curve;
+
   /// Cursor text. Defaults to underscore.
   final String cursor;
+
   /// @author: klever - BLOKPARTi
   final int? maxLines;
   final TextOverflow overflow;
   final int lengthAlreadyShown;
   String _visibleString = '';
   final bool isHapticFeedbackEnabled;
+  final int hapticInterval;
+
   String get visibleString => _visibleString;
+
   TypewriterAnimatedText(
-      String text, {
-        super.textAlign,
-        super.textStyle,
-        this.lengthAlreadyShown = 0,
-        this.speed = const Duration(milliseconds: 30),
-        this.curve = Curves.linear,
-        this.maxLines,
-        this.overflow = TextOverflow.clip,
-        this.cursor = '_',
-        this.isHapticFeedbackEnabled = false,
-      }) : super(
-    text: text,
-    duration: speed * (text.characters.length + extraLengthForBlinks),
-  );
+    String text, {
+    super.textAlign,
+    super.textStyle,
+    this.lengthAlreadyShown = 0,
+    this.speed = const Duration(milliseconds: 30),
+    this.curve = Curves.linear,
+    this.maxLines,
+    this.overflow = TextOverflow.clip,
+    this.cursor = '_',
+    this.isHapticFeedbackEnabled = false,
+    this.hapticInterval = 8,
+  }) : super(
+          text: text,
+          duration: speed * (text.characters.length + extraLengthForBlinks),
+        );
+
   late Animation<double> _typewriterText;
+  AnimationController? _controller;
+
   @override
   Duration get remaining =>
       speed *
-          (textCharacters.length + extraLengthForBlinks - _typewriterText.value);
+      (textCharacters.length + extraLengthForBlinks - _typewriterText.value);
+
   var prevValue = 0.0;
+  int _lastHapticCharPos = 0;
+
   @override
   void initAnimation(AnimationController controller) {
+    _controller = controller;
     _typewriterText = CurveTween(
       curve: curve,
     ).animate(controller);
+
     _typewriterText.addListener(() {
       final currentValue = _typewriterText.value;
       if (currentValue - prevValue >= 0.035) {
         prevValue = currentValue;
-        // Toplam karakter sayısını hesapla
+
+        // Calculate total character count
         final totalChars = textCharacters.length;
-        // Şu anki karakter pozisyonunu hesapla (yaklaşık olarak)
+        // Calculate current character position (approximately)
         final currentCharPos = (currentValue * totalChars).round();
-        // Sadece ilk 50 veya son 50 karakterde haptik geri bildirim ver
-        if (currentCharPos < 45 || currentCharPos > totalChars - 35) {
-          if (isHapticFeedbackEnabled) {
-            HapticFeedback.lightImpact();
-          }
+
+        // Trigger haptic feedback based on hapticInterval
+        if (isHapticFeedbackEnabled &&
+            currentCharPos > 0 &&
+            currentCharPos - _lastHapticCharPos >= hapticInterval) {
+          _lastHapticCharPos = currentCharPos;
+          HapticFeedback.lightImpact();
         }
       }
     });
   }
+
   @override
   Widget completeText(BuildContext context) => RichText(
-    text: TextSpan(
-      children: [
-        TextSpan(text: text),
-        TextSpan(
-          text: cursor,
-          style: const TextStyle(color: Colors.transparent),
+        text: TextSpan(
+          children: [
+            TextSpan(text: text),
+            TextSpan(
+              text: cursor,
+              style: const TextStyle(color: Colors.transparent),
+            ),
+          ],
+          style: DefaultTextStyle.of(context).style.merge(textStyle),
         ),
-      ],
-      style: DefaultTextStyle.of(context).style.merge(textStyle),
-    ),
-    maxLines: maxLines,
-    overflow: overflow,
-    textAlign: textAlign,
-  );
+        maxLines: maxLines,
+        overflow: overflow,
+        textAlign: textAlign,
+      );
+
   /// Widget showing partial text
   @override
   Widget animatedBuilder(BuildContext context, Widget? child) {
@@ -91,13 +113,15 @@ class TypewriterAnimatedText extends AnimatedText {
     /// It is converted to [0, textCharacters.length + extraLengthForBlinks].
     final textLen = textCharacters.length;
     final typewriterValue = (_typewriterText.value.clamp(0, 1) *
-        (textCharacters.length + extraLengthForBlinks))
+            (textCharacters.length + extraLengthForBlinks))
         .round();
+
     var showCursor = true;
     var visibleString = text;
+
     if (typewriterValue == 0) {
       visibleString =
-      lengthAlreadyShown == 0 ? '' : text.substring(0, lengthAlreadyShown);
+          lengthAlreadyShown == 0 ? '' : text.substring(0, lengthAlreadyShown);
       showCursor = false;
     } else if (typewriterValue > textLen) {
       showCursor = (typewriterValue - textLen) % 2 == 0;
@@ -106,6 +130,7 @@ class TypewriterAnimatedText extends AnimatedText {
           textCharacters.take(typewriterValue + lengthAlreadyShown).toString();
       _visibleString = visibleString;
     }
+
     return RichText(
       text: TextSpan(
         children: [
@@ -113,7 +138,7 @@ class TypewriterAnimatedText extends AnimatedText {
           TextSpan(
             text: cursor,
             style:
-            showCursor ? null : const TextStyle(color: Colors.transparent),
+                showCursor ? null : const TextStyle(color: Colors.transparent),
           ),
         ],
         style: DefaultTextStyle.of(context).style.merge(textStyle),

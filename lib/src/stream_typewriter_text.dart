@@ -19,6 +19,12 @@ class StreamTypewriterAnimatedText extends StatefulWidget {
   final int hapticInterval;
   final VoidCallback? onFinished;
 
+  /// Whether tapping on the text should complete the animation immediately
+  final bool tapToCompleteAnimation;
+
+  /// Callback when the text is tapped (only called when tapToCompleteAnimation is true)
+  final VoidCallback? onTap;
+
   const StreamTypewriterAnimatedText({
     super.key,
     required this.text,
@@ -36,6 +42,8 @@ class StreamTypewriterAnimatedText extends StatefulWidget {
     this.isHapticFeedbackEnabled = false,
     this.hapticInterval = 8,
     this.onFinished,
+    this.tapToCompleteAnimation = false,
+    this.onTap,
   });
 
   @override
@@ -49,6 +57,7 @@ class StreamTypewriterAnimatedTextState
   TypewriterAnimatedText? _typewriterAnimatedText;
   int _lengthAlreadyShown = 0;
   bool _didExceedMaxLines = false;
+  bool _isCompleted = false; // Track if animation was completed by tap
 
   @override
   void didUpdateWidget(covariant StreamTypewriterAnimatedText oldWidget) {
@@ -61,16 +70,39 @@ class StreamTypewriterAnimatedTextState
       _lengthAlreadyShown = typewriterAnimatedText != null && startsWithOldText
           ? typewriterAnimatedText.visibleString.length
           : 0;
+      // Reset completion state when text changes
+      _isCompleted = false;
     }
     if (widget.style != oldWidget.style) {
       _didExceedMaxLines = false;
       _lengthAlreadyShown = 0;
+      _isCompleted = false;
     }
     super.didUpdateWidget(oldWidget);
   }
 
+  void _handleTap() {
+    if (widget.tapToCompleteAnimation && !_isCompleted) {
+      setState(() {
+        _isCompleted = true;
+      });
+      widget.onTap?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // If animation was completed by tap, show complete text immediately
+    if (_isCompleted && _typewriterAnimatedText != null) {
+      final completeWidget = _typewriterAnimatedText!.completeText(context);
+      return widget.tapToCompleteAnimation
+          ? GestureDetector(
+              onTap: _handleTap,
+              child: completeWidget,
+            )
+          : completeWidget;
+    }
+
     if (widget.maxLines != null) {
       if (_didExceedMaxLines && _child != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,7 +110,7 @@ class StreamTypewriterAnimatedTextState
             widget.onFinished?.call();
           }
         });
-        return _child!;
+        return _wrapWithTapHandler(_child!);
       }
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -107,13 +139,23 @@ class StreamTypewriterAnimatedTextState
             _createNewWidget(widget.text);
           }
           textPainter.dispose();
-          return _child!;
+          return _wrapWithTapHandler(_child!);
         },
       );
     } else {
       _createNewWidget(widget.text);
-      return _child!;
+      return _wrapWithTapHandler(_child!);
     }
+  }
+
+  Widget _wrapWithTapHandler(Widget child) {
+    if (widget.tapToCompleteAnimation) {
+      return GestureDetector(
+        onTap: _handleTap,
+        child: child,
+      );
+    }
+    return child;
   }
 
   _createNewWidget(String text) {
@@ -146,6 +188,9 @@ class StreamTypewriterAnimatedTextState
       repeatForever: widget.repeatForever,
       totalRepeatCount: widget.totalRepeatCount,
       onFinished: widget.onFinished,
+      // Don't use AnimatedTextKit's tap handling anymore, we handle it ourselves
+      displayFullTextOnTap: false,
+      onTap: null,
     );
   }
 }

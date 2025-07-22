@@ -69,6 +69,16 @@ class _MyAppState extends State<MyApp> {
                           isHapticFeedbackEnabled: true,
                           speed: const Duration(milliseconds: 30),
                           pause: const Duration(milliseconds: 100),
+                          tapToCompleteAnimation: true,
+                          onTap: () {
+                            // Optional: Show feedback when tapped
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Animation completed!'),
+                                duration: Duration(milliseconds: 1000),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),
